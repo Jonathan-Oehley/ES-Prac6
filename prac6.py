@@ -19,6 +19,7 @@ GPIO.setmode(GPIO.BCM)
 #Setup pins numbers for buttons
 s_line_button = 6
 mode_switch = 13
+c_line = 26
 
 #Setup pin numbers for LEDs
 LED_1 = 19
@@ -32,18 +33,23 @@ SPICS = 8
 #Initialize variables for the program operation
 tolerence = 50                                  #tolerance of duration readings in ms
 sample_time = 100                               #sample time in ms
-durations = [0 for i in range(16)]              #durations array
-directions = [0 for i in range(16)]             #directions array
+durations = [0 for i in range(16)]              #durations array in seconds
+directions = [0 for i in range(16)]             #directions array, right = 1, left = 0
 words=[[0]*2 for i in range(16)]                #2 by 16 2D data variable for direction, duration combinations 
 reading = 0
 
-    # time recording variables
+# time recording variables
 t_start_ready = 0                               #time of start of waiting for entry
 
 pos_1 = 0                                       # stores current position of potentiometer
 pos_0 = 0                                       # stores previous position of potentiometer
 
 mode = 0                                        #indicates current mode of operation. initialized to idle mode
+entry_num = 0
+
+t_turn_start = 0                                #time of the start of turn of the potentiometer
+t_turn_stop = 0                                 #time of the end of the turn
+t_pause_start = 0                               #start time of a pause/stop in turning 
 
 #Global variable declarations
 global t				        #timer variable
@@ -51,9 +57,12 @@ global t				        #timer variable
 #setup GPIO input pins
 GPIO.setup(s_line_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(mode_switch, GPIO.IN)
+GPIO.setup(c_line, GPIO.IN)
 
 #setup GPIO output pins
 GPIO.setup(LED_1, GPIO.OUT)
+
+#setup GPIO output for LEDs, U and L
 
 #setup GPIO io pins for SPI interface
 GPIO.setup(SPIMOSI, GPIO.OUT)
@@ -101,20 +110,25 @@ def print_combination():
             print('R', end='')
         print(durations[i], end=' ')
     print('\n')
+
+def sort(array):
+    for i in range(len(array)):
+        min_val = i
+
+        for j in range (i+1, len(array)):
+            if array[min_val] > array[j]:
+                min[val] = j
+
+        array[i], array[min_val] = array[min_val], array[i]
+
+    return(array)
         
+        
+    
 
 #setup edge detection for push button
 GPIO.add_event_detect(s_line_button, GPIO.FALLING, bouncetime=200, callback=s_line_button_callback)
 
-#setup GPIO output for LEDs, U and L
-
-# Variables -> move to above function declarations later
-t_turn_start = 0
-t_turn_stop = 0
-t_pause_start = 0
-
-entry_num = 0
-dir = 0
 
 # temp code usage
 read1 = int( (mcp.read_adc(0)/1023) * 127 )
@@ -154,7 +168,7 @@ try:
                     pos_0 = pos_1
                     t_turn_start = time.time()                    
                     mode = 3    # mode -> turn_left
-                elif (time.time() - t_start_ready > 2):
+                elif (time.time() - t_start_ready > 2):     
                     mode = 10   # mode -> end_combination
             
             elif mode == 2:  # turn_right mode
@@ -168,7 +182,7 @@ try:
                     # Direction has changed. Record code and start new code
                     t_turn_stop = time.time()
                     add_code(t_turn_start, t_turn_stop, 1)
-                    
+
                     t_turn_start = time.time()
                     pos_0 = pos_1
                     mode = 3 # mode -> turn_left
