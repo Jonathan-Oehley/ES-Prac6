@@ -123,6 +123,17 @@ def sort(array):
 
     return(array)
         
+
+# sound playback setup
+#pygame.mixer.pre_init(44100, -16, 1, 512)
+#pygame.mixer.init()
+pygame.init()
+
+
+# create sound objects
+clickR = pygame.mixer.Sound('clickR_88.wav')
+clickL = pygame.mixer.Sound('clickL_88.wav')
+
 #setup edge detection for push button
 GPIO.add_event_detect(s_line_button, GPIO.FALLING, bouncetime=200, callback=s_line_button_callback)
 
@@ -179,13 +190,13 @@ try:
                     # Record time, position, set mode to turn_right:
                     pos_0 = pos_1
                     t_turn_start = time.time()
-                    
+                    clickR.play()
                     mode = 2    # mode -> turn_right
                 elif pos_1 < pos_0:
                     # Record time, position, set mode to turn_left:
                     pos_0 = pos_1
                     t_turn_start = time.time()
-                    
+                    clickL.play()
                     mode = 3    # mode -> turn_left
                 elif (time.time() - t_start_ready > 2):     
                     mode = 10   # mode -> end_combination
@@ -204,8 +215,8 @@ try:
 
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    
-                    
+                    clickR.stop()
+                    clickL.play()
                     mode = 3 # mode -> turn_left
                 else:
                     pos_0 = pos_1
@@ -223,8 +234,8 @@ try:
                     
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    
-                    
+                    clickL.stop()
+                    clickR.play()
                     mode = 2 # mode -> turn_right
                 else:
                     pos_0 = pos_1
@@ -240,14 +251,14 @@ try:
                     
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    
-                    
+                    clickR.stop()
+                    clickL.play()
                     mode = 3 # mode -> turn_left
                 elif (time.time() - t_pause_start > 1):
                     # Dial stopped for 1s. Record code and enter ready_to_start mode
                     add_code(t_turn_start, t_pause_start, 1)
                     t_start_ready = time.time() - 1
-                    
+                    clickR.stop()
                     mode = 1 # mode -> ready_to_start
             
             elif mode == 5:  # turn_left_pause mode
@@ -262,14 +273,14 @@ try:
                     
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    
-                    
+                    clickL.stop()
+                    clickR.play()
                     mode = 2 # mode -> turn_right
                 elif (time.time() - t_pause_start > 1):
                     # Dial stopped for 1s. Record code and enter ready_to_start mode
                     add_code(t_turn_start, t_pause_start, 0)
                     t_start_ready = time.time() - 1
-                    
+                    clickL.stop()
                     mode = 1 # mode -> ready_to_start
             
             elif mode == 10:     # end_combination mode
@@ -278,6 +289,7 @@ try:
                 print(directions)
                 print(durations)
                 
+                pygame.mixer.stop() #stop any sounds playing
                 
                 entry_num = 0
                 mode = 0    # mode -> idle
@@ -285,5 +297,8 @@ try:
                 
 except KeyboardInterrupt:
         GPIO.cleanup()  #cleanup GPIO on keyboard exit
+        pygame.mixer.stop() #stop any sounds playing
+        pygame.quit()
 
 GPIO.cleanup()  #cleanup GPIO on normal exit
+pygame.quit()
