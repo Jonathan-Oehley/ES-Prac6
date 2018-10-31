@@ -130,25 +130,40 @@ def sort(array):
 GPIO.add_event_detect(s_line_button, GPIO.FALLING, bouncetime=200, callback=s_line_button_callback)
 
 
-# temp code usage
-read1 = int( (mcp.read_adc(0)/1023) * 127 )
-read0 = read1
+
+# Variables for smoothing of adc input
+numReadings = 10
+readIndex = 0
+total = 0
+average = 0
+read_avg = 0
+readings = [0 for i in range(numReadings)]
 
 try:
         while True:
-            #temp code:
-            read1 = int( (mcp.read_adc(0)/1023) * 127 )
-            if (read1 - read0 > 1) or (read0 - read1 > 1):
-                read0 = read1
-            else:
-                read1 = read0
-            time.sleep(0.1)
-            #-------------------------
+            # Reading and smoothing adc input ----------------------------------
             
+            # subtract the last reading:
+            total = total - readings[readIndex]
+            # read from the sensor:
+            readings[readIndex] = mcp.read_adc(0)
+            # add the reading to the total:
+            total = total + readings[readIndex]
+            # advance to the next position in the array:
+            readIndex = readIndex + 1
             
-            # sample current position of potentiometer
-            #pos_1 = mcp.read_adc(0)
-            pos_1 = read1
+            # if we're at the end of the array...
+            if (readIndex >= numReadings):
+                #...wrap around to the beginning:
+                readIndex = 0
+                
+            # calculate the average and round reading:
+            average = total / numReadings
+            read_avg = int( (average/1023) * 127)
+            time.sleep(0.05)
+            #-----------------------------------------------------------------
+            
+            pos_1 = read_avg
             
             if mode != 0:
                 print(pos_1) # for testing
