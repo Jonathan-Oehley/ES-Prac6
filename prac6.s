@@ -16,7 +16,7 @@ r9 - temporary copy of r4
 */
 
 .data
-array: .word 3,6,9,15	@array to be sorted
+array: .word 15,6,3,9	@array to be sorted
 
 format: .asciz "%d"	@printing string for data
 
@@ -24,7 +24,7 @@ format: .asciz "%d"	@printing string for data
 comma: .asciz ", "	@comma
 
 .balign 4
-newline: "\n"		@newline
+newline: .asciz "\n"	@newline
 
 .text
 .global main
@@ -50,7 +50,7 @@ inner_cont:
 	add r7, r7, #4			@increment inner offset
 	cmp r7, #16			@check if reached the end of the inner loop
 	blt inner_loop			@loop again if not at end
-	add r8, r8 #4			@increment outer offset
+	add r8, r8, #4			@increment outer offset
 	cmp r8, #16			@check if reach the end of the outer loop
 	blt outer_loop			@loop again if not at end
 	mov r8, #0			@reset outer loop offset
@@ -81,9 +81,6 @@ end:
 	bl printf			@print newline character
 	POP {r4, r5, r6, r7, r8, LR}	@restore registers
 	bx lr 				@leave main	
-
-	
- 
 
 
 
