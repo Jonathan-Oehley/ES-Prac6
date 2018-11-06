@@ -23,7 +23,9 @@ mode_switch = 13
 c_line = 26
 
 #Setup pin numbers for LEDs
-LED_1 = 19
+Lock_LED = 5
+L_LED = 27
+U_LED = 22
 
 #setup pin numbers for SPI interface
 SPICLK = 11
@@ -40,7 +42,7 @@ words=[[0]*2 for i in range(16)]                #2 by 16 2D data variable for di
 reading = 0
 combocode = "L1R2L3"                            #lock combination
 secure = 1                                      #secure mode on/off
-locked = 1                                      #status of the lock
+locked = True                                   #status of the lock
 
 # time recording variables
 t_start_ready = 0                               #time of start of waiting for entry
@@ -61,10 +63,15 @@ GPIO.setup(s_line_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(mode_switch, GPIO.IN)
 GPIO.setup(c_line, GPIO.IN)
 
-#setup GPIO output pins
-GPIO.setup(LED_1, GPIO.OUT)
+#setup GPIO output pins for LEDS
+GPIO.setup(Lock_LED, GPIO.OUT)
+GPIO.setup(L_LED, GPIO.OUT)
+GPIO.setup(U_LED, GPIO.OUT)
 
-#setup GPIO output for LEDs, U and L
+#initialize GPIO output LEDS
+GPIO.output(Lock_LED, locked)
+GPIO.output(L_LED, GPIO.LOW)
+GPIO.output(U_LED, GPIO.LOW)
 
 #setup GPIO io pins for SPI interface
 GPIO.setup(SPIMOSI, GPIO.OUT)
@@ -89,7 +96,7 @@ def s_line_button_callback(pin):
         time.sleep(0.2)
         mode = 1    # mode -> ready_to_start
         entry_num = 0
-        print('ready_to_start')     # for testing
+        print('ready_to_start')     # for testing #comment_out
 
 def add_code(t_start, t_stop, direction):
     global entry_num
@@ -214,7 +221,7 @@ try:
             time.sleep(0.02)
             
             if mode != 0:
-                print(pos_1) # for testing
+                print(pos_1) # for testing #comment_out?
             
             if mode == 0:      # idle mode
                 # flash a light or something
@@ -326,19 +333,36 @@ try:
                 if secure:
                     if (check_combination(combocode, durations, directions, tolerance)):
                         #play sound
-                        #write U/L high
-                        #wait 2 seconds
-                        #change lock state
+                        pygame.mixer.stop()                     #stop any sounds playing
+                        if locked:
+                            GPIO.output(U_LED, GPIO.HIGH)       #write Unlock line high
+                            time.sleep(2)                       #wait 2 seconds
+                            GPIO.output(U_LED, GPIO.LOW)        #write Unlock line low                            
+                            locked = False
+                        else:
+                            GPIO.output(L_LED, GPIO.HIGH)       #write Unlock line high
+                            time.sleep(2)                       #wait 2 seconds
+                            GPIO.output(L_LED, GPIO.LOW)        #write Unlock line low                            
+                            locked = True 
                     else:
                         #play sound
                 else:
                     if (check_unsecure(combocode, durations, tolerance)):
                         #play sound
-                        #write U/L high
+                        if locked:
+                            GPIO.output(U_LED, GPIO.HIGH)       #write Unlock line high
+                            time.sleep(2)                       #wait 2 seconds
+                            GPIO.output(U_LED, GPIO.LOW)        #write Unlock line low                            
+                            locked = False
+                        else:
+                            GPIO.output(L_LED, GPIO.HIGH)       #write Unlock line high
+                            time.sleep(2)                       #wait 2 seconds
+                            GPIO.output(L_LED, GPIO.LOW)        #write Unlock line low                            
+                            locked = True 
                     else:
                         #play sound
                     
-
+                #comment_out
                 # test code. will be changed    
                 print_combination()
                 print(directions)
