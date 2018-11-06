@@ -180,6 +180,8 @@ pygame.init()
 # create sound objects
 clickR = pygame.mixer.Sound('clickR_88.wav')
 clickL = pygame.mixer.Sound('clickL_88.wav')
+fail = pygame.mixer.Sound('fail.wav')
+sucess = pygame.mixer.Sound('sucess.wav')
 
 # Variables for smoothing of adc input
 numReadings = 10
@@ -332,8 +334,7 @@ try:
                 
                 if secure:
                     if (check_combination(combocode, durations, directions, tolerance)):
-                        #play sound
-                        pygame.mixer.stop()                     #stop any sounds playing
+                        sucess.play()
                         if locked:
                             GPIO.output(U_LED, GPIO.HIGH)       #write Unlock line high
                             time.sleep(2)                       #wait 2 seconds
@@ -344,11 +345,13 @@ try:
                             time.sleep(2)                       #wait 2 seconds
                             GPIO.output(L_LED, GPIO.LOW)        #write Unlock line low                            
                             locked = True 
+                        pygame.mixer.stop()                     #stop any sounds playing
+
                     else:
-                        #play sound
+                        fail.play()
                 else:
                     if (check_unsecure(combocode, durations, tolerance)):
-                        #play sound
+                        sucess.play()
                         if locked:
                             GPIO.output(U_LED, GPIO.HIGH)       #write Unlock line high
                             time.sleep(2)                       #wait 2 seconds
@@ -359,8 +362,9 @@ try:
                             time.sleep(2)                       #wait 2 seconds
                             GPIO.output(L_LED, GPIO.LOW)        #write Unlock line low                            
                             locked = True 
+                        pygame.mixer.stop()                     #stop any sounds playing
                     else:
-                        #play sound
+                        fail.play()
                     
                 #comment_out
                 # test code. will be changed    
