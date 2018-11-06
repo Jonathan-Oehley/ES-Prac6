@@ -34,14 +34,14 @@ SPIMOSI = 10
 SPICS = 8
 
 #Initialize variables for the program operation
-tolerence = 50                                  #tolerance of duration readings in ms
+tolerance = 500                                  #tolerance of duration readings in ms
 sample_time = 100                               #sample time in ms
 durations = [0 for i in range(16)]              #durations array in seconds
 directions = [0 for i in range(16)]             #directions array, right = 1, left = 0
 words=[[0]*2 for i in range(16)]                #2 by 16 2D data variable for direction, duration combinations 
 reading = 0
 combocode = "L1R2L3"                            #lock combination
-secure = 1                                      #secure mode on/off
+secure = 0                                      #secure mode on/off
 locked = True                                   #status of the lock
 
 # time recording variables
@@ -146,7 +146,7 @@ def check_combination(code, durations, directions, tolerance):
         code_durations.append(int(code[2*i+1]))
             
     for i in range (len(code_durations)):
-        if durations[i]*10 < (code_durations[i] -  tolerance/100) or durations[i]*10 > (code_durations[i] +  tolerance/100):
+        if durations[i]*10 < (code_durations[i]*10 -  tolerance/100) or durations[i]*10 > (code_durations[i]*10 +  tolerance/100):
             return False
         if code_directions[i] == directions[i]:
             continue
@@ -164,7 +164,7 @@ def check_unsecure(code, durations, tolerance):
     durations = sort(durations)
             
     for i in range (len(code_durations)):
-        if durations[i]*10 < (code_durations[i] -  tolerance/100) or durations[i]*10 > (code_durations[i] +  tolerance/100):
+        if durations[i]*10 < (code_durations[i]*10 -  tolerance/100) or durations[i]*10 > (code_durations[i]*10 +  tolerance/100):
             return False
 
     return True   
@@ -178,8 +178,8 @@ GPIO.add_event_detect(s_line_button, GPIO.FALLING, bouncetime=200, callback=s_li
 pygame.init()
 
 # create sound objects
-clickR = pygame.mixer.Sound('clickR_88.wav')
-clickL = pygame.mixer.Sound('clickL_88.wav')
+#clickR = pygame.mixer.Sound('#clickR_88.wav')
+#clickL = pygame.mixer.Sound('#clickL_88.wav')
 fail = pygame.mixer.Sound('fail.wav')
 sucess = pygame.mixer.Sound('sucess.wav')
 
@@ -235,13 +235,13 @@ try:
                     # Record time, position, set mode to turn_right:
                     pos_0 = pos_1
                     t_turn_start = time.time()
-                    clickR.play()
+                    #clickR.play()
                     mode = 2    # mode -> turn_right
                 elif pos_1 < pos_0:
                     # Record time, position, set mode to turn_left:
                     pos_0 = pos_1
                     t_turn_start = time.time()
-                    clickL.play()
+                    #clickL.play()
                     mode = 3    # mode -> turn_left
                 elif (time.time() - t_start_ready > 2):     
                     mode = 10   # mode -> end_combination
@@ -256,13 +256,16 @@ try:
                 elif pos_1 < pos_0:
                     # Direction has changed. Record code and start new code
                     t_turn_stop = time.time()
-                    add_code(t_turn_start, t_turn_stop, 1)
+                    if (t_turn_stop - t_turn_start > 0.2):
+                        add_code(t_turn_start, t_turn_stop, 1)
 
-                    t_turn_start = time.time()
-                    pos_0 = pos_1
-                    clickR.stop()
-                    clickL.play()
-                    mode = 3 # mode -> turn_left
+                        t_turn_start = time.time()
+                        pos_0 = pos_1
+                        #clickR.stop()
+                        #clickL.play()
+                        mode = 3 # mode -> turn_left
+                    else:
+                        pos_0 = pos_1
                 else:
                     pos_0 = pos_1
             
@@ -275,13 +278,16 @@ try:
                 elif pos_1 > pos_0:
                     # Direction has changed. Record code and start new code
                     t_turn_stop = time.time()
-                    add_code(t_turn_start, t_turn_stop, 0)
-                    
-                    t_turn_start = time.time()
-                    pos_0 = pos_1
-                    clickL.stop()
-                    clickR.play()
-                    mode = 2 # mode -> turn_right
+                    if (t_turn_stop - t_turn_start > 0.2):
+                        add_code(t_turn_start, t_turn_stop, 0)
+                        
+                        t_turn_start = time.time()
+                        pos_0 = pos_1
+                        #clickL.stop()
+                        #clickR.play()
+                        mode = 2 # mode -> turn_right
+                    else:
+                        pos_0 = pos_1
                 else:
                     pos_0 = pos_1
             
@@ -292,18 +298,21 @@ try:
                     mode = 2 # mode -> turn_right
                 elif pos_1 < pos_0:
                     # Direction has changed. Record code and start new code
-                    add_code(t_turn_start, t_pause_start, 1)
-                    
-                    t_turn_start = time.time()
-                    pos_0 = pos_1
-                    clickR.stop()
-                    clickL.play()
-                    mode = 3 # mode -> turn_left
+                    if (t_turn_stop - t_turn_start > 0.2):
+                        add_code(t_turn_start, t_pause_start, 1)
+                        
+                        t_turn_start = time.time()
+                        pos_0 = pos_1
+                        #clickR.stop()
+                        #clickL.play()
+                        mode = 3 # mode -> turn_left
+                    else:
+                        pos_0 = pos_1
                 elif (time.time() - t_pause_start > 1):
                     # Dial stopped for 1s. Record code and enter ready_to_start mode
                     add_code(t_turn_start, t_pause_start, 1)
                     t_start_ready = time.time() - 1
-                    clickR.stop()
+                    #clickR.stop()
                     mode = 1 # mode -> ready_to_start
             
             elif mode == 5:  # turn_left_pause mode
@@ -314,18 +323,21 @@ try:
                 elif pos_1 > pos_0:
                     # Direction has changed. Record code and start new code
                     t_turn_stop = time.time()
-                    add_code(t_turn_start, t_pause_start, 0)
-                    
-                    t_turn_start = time.time()
-                    pos_0 = pos_1
-                    clickL.stop()
-                    clickR.play()
-                    mode = 2 # mode -> turn_right
+                    if (t_turn_stop - t_turn_start > 0.2):
+                        add_code(t_turn_start, t_pause_start, 0)
+                        
+                        t_turn_start = time.time()
+                        pos_0 = pos_1
+                        #clickL.stop()
+                        #clickR.play()
+                        mode = 2 # mode -> turn_right
+                    else:
+                        pos_0 = pos_1
                 elif (time.time() - t_pause_start > 1):
                     # Dial stopped for 1s. Record code and enter ready_to_start mode
                     add_code(t_turn_start, t_pause_start, 0)
                     t_start_ready = time.time() - 1
-                    clickL.stop()
+                    #clickL.stop()
                     mode = 1 # mode -> ready_to_start
 
     
@@ -340,15 +352,17 @@ try:
                             time.sleep(2)                       #wait 2 seconds
                             GPIO.output(U_LED, GPIO.LOW)        #write Unlock line low                            
                             locked = False
+                            print('unlocked')
                         else:
                             GPIO.output(L_LED, GPIO.HIGH)       #write Unlock line high
                             time.sleep(2)                       #wait 2 seconds
                             GPIO.output(L_LED, GPIO.LOW)        #write Unlock line low                            
-                            locked = True 
+                            locked = True
+                            print('locked')
                         pygame.mixer.stop()                     #stop any sounds playing
-
                     else:
                         fail.play()
+                        print("fail")
                 else:
                     if (check_unsecure(combocode, durations, tolerance)):
                         sucess.play()
@@ -357,11 +371,13 @@ try:
                             time.sleep(2)                       #wait 2 seconds
                             GPIO.output(U_LED, GPIO.LOW)        #write Unlock line low                            
                             locked = False
+                            print('unlocked')
                         else:
                             GPIO.output(L_LED, GPIO.HIGH)       #write Unlock line high
                             time.sleep(2)                       #wait 2 seconds
                             GPIO.output(L_LED, GPIO.LOW)        #write Unlock line low                            
-                            locked = True 
+                            locked = True
+                            print('locked')
                         pygame.mixer.stop()                     #stop any sounds playing
                     else:
                         fail.play()
