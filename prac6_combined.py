@@ -38,6 +38,9 @@ durations = [0 for i in range(16)]              #durations array in seconds
 directions = [0 for i in range(16)]             #directions array, right = 1, left = 0
 words=[[0]*2 for i in range(16)]                #2 by 16 2D data variable for direction, duration combinations 
 reading = 0
+combocode = "L1R2L3"                            #lock combination
+secure = 1                                      #secure mode on/off
+locked = 1                                      #status of the lock
 
 # time recording variables
 t_start_ready = 0                               #time of start of waiting for entry
@@ -117,23 +120,48 @@ def sort(array):
 
         for j in range (i+1, len(array)):
             if array[min_val] > array[j]:
-                min[val] = j
+                min_val = j
 
         array[i], array[min_val] = array[min_val], array[i]
 
     return(array)
-        
 
-# sound playback setup
-#pygame.mixer.pre_init(44100, -16, 1, 512)
-#pygame.mixer.init()
-pygame.init()
+def check_combination(code, durations, directions, tolerance):
+    code_durations = []
+    code_directions = []
+    
+    for i in range (int(len(code)/2)):
+        if code[2*i] == 'L':
+            code_directions.append(0)
+        else:
+            code_directions.append(1)
 
+        code_durations.append(int(code[2*i+1]))
+            
+    for i in range (len(code_durations)):
+        if durations[i]*10 < (code_durations[i] -  tolerance/100) or durations[i]*10 > (code_durations[i] +  tolerance/100):
+            return False
+        if code_directions[i] == directions[i]:
+            continue
+        else:
+            return False
+    return True
 
-# create sound objects
-clickR = pygame.mixer.Sound('clickR_88.wav')
-clickL = pygame.mixer.Sound('clickL_88.wav')
+def check_unsecure(code, durations, tolerance):
+    code_durations = []
+    
+    for i in range (int(len(code)/2)):
+        code_durations.append(int(code[2*i+1]))
 
+    code_durations = sort(code_durations)
+    durations = sort(durations)
+            
+    for i in range (len(code_durations)):
+        if durations[i]*10 < (code_durations[i] -  tolerance/100) or durations[i]*10 > (code_durations[i] +  tolerance/100):
+            return False
+
+    return True   
+            
 #setup edge detection for push button
 GPIO.add_event_detect(s_line_button, GPIO.FALLING, bouncetime=200, callback=s_line_button_callback)
 
@@ -190,13 +218,13 @@ try:
                     # Record time, position, set mode to turn_right:
                     pos_0 = pos_1
                     t_turn_start = time.time()
-                    clickR.play()
+                    
                     mode = 2    # mode -> turn_right
                 elif pos_1 < pos_0:
                     # Record time, position, set mode to turn_left:
                     pos_0 = pos_1
                     t_turn_start = time.time()
-                    clickL.play()
+                    
                     mode = 3    # mode -> turn_left
                 elif (time.time() - t_start_ready > 2):     
                     mode = 10   # mode -> end_combination
@@ -215,8 +243,8 @@ try:
 
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    clickR.stop()
-                    clickL.play()
+                    
+                    
                     mode = 3 # mode -> turn_left
                 else:
                     pos_0 = pos_1
@@ -234,8 +262,8 @@ try:
                     
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    clickL.stop()
-                    clickR.play()
+                    
+                    
                     mode = 2 # mode -> turn_right
                 else:
                     pos_0 = pos_1
@@ -251,14 +279,14 @@ try:
                     
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    clickR.stop()
-                    clickL.play()
+                    
+                    
                     mode = 3 # mode -> turn_left
                 elif (time.time() - t_pause_start > 1):
                     # Dial stopped for 1s. Record code and enter ready_to_start mode
                     add_code(t_turn_start, t_pause_start, 1)
                     t_start_ready = time.time() - 1
-                    clickR.stop()
+                    
                     mode = 1 # mode -> ready_to_start
             
             elif mode == 5:  # turn_left_pause mode
@@ -273,23 +301,38 @@ try:
                     
                     t_turn_start = time.time()
                     pos_0 = pos_1
-                    clickL.stop()
-                    clickR.play()
+                    
+                    
                     mode = 2 # mode -> turn_right
                 elif (time.time() - t_pause_start > 1):
                     # Dial stopped for 1s. Record code and enter ready_to_start mode
                     add_code(t_turn_start, t_pause_start, 0)
                     t_start_ready = time.time() - 1
-                    clickL.stop()
+                    
                     mode = 1 # mode -> ready_to_start
             
             elif mode == 10:     # end_combination mode
-                # test code. will be changed
+                if secure:
+                    if (check_combination(combocode, durations, directions, tolerance)):
+                        #play sound
+                        #write U/L high
+                        #wait 2 seconds
+                        #change lock state
+                    else:
+                        #play sound
+                else:
+                    if (check_unsecure(combocode, durations, tolerance)):
+                        #play sound
+                        #write U/L high
+                    else:
+                        #play sound
+                    
+
+                # test code. will be changed    
                 print_combination()
                 print(directions)
                 print(durations)
                 
-                pygame.mixer.stop() #stop any sounds playing
                 
                 entry_num = 0
                 mode = 0    # mode -> idle
@@ -297,8 +340,5 @@ try:
                 
 except KeyboardInterrupt:
         GPIO.cleanup()  #cleanup GPIO on keyboard exit
-        pygame.mixer.stop() #stop any sounds playing
-        pygame.quit()
 
 GPIO.cleanup()  #cleanup GPIO on normal exit
-pygame.quit()
