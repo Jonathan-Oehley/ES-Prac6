@@ -38,6 +38,9 @@ durations = [0 for i in range(16)]              #durations array in seconds
 directions = [0 for i in range(16)]             #directions array, right = 1, left = 0
 words=[[0]*2 for i in range(16)]                #2 by 16 2D data variable for direction, duration combinations 
 reading = 0
+combocode = "L1R2L3"                            #lock combination
+secure = 1                                      #secure mode on/off
+locked = 1                                      #status of the lock
 
 # time recording variables
 t_start_ready = 0                               #time of start of waiting for entry
@@ -117,12 +120,48 @@ def sort(array):
 
         for j in range (i+1, len(array)):
             if array[min_val] > array[j]:
-                min[val] = j
+                min_val = j
 
         array[i], array[min_val] = array[min_val], array[i]
 
     return(array)
-        
+
+def check_combination(code, durations, directions, tolerance):
+    code_durations = []
+    code_directions = []
+    
+    for i in range (int(len(code)/2)):
+        if code[2*i] == 'L':
+            code_directions.append(0)
+        else:
+            code_directions.append(1)
+
+        code_durations.append(int(code[2*i+1]))
+            
+    for i in range (len(code_durations)):
+        if durations[i]*10 < (code_durations[i] -  tolerance/100) or durations[i]*10 > (code_durations[i] +  tolerance/100):
+            return False
+        if code_directions[i] == directions[i]:
+            continue
+        else:
+            return False
+    return True
+
+def check_unsecure(code, durations, tolerance):
+    code_durations = []
+    
+    for i in range (int(len(code)/2)):
+        code_durations.append(int(code[2*i+1]))
+
+    code_durations = sort(code_durations)
+    durations = sort(durations)
+            
+    for i in range (len(code_durations)):
+        if durations[i]*10 < (code_durations[i] -  tolerance/100) or durations[i]*10 > (code_durations[i] +  tolerance/100):
+            return False
+
+    return True   
+            
 #setup edge detection for push button
 GPIO.add_event_detect(s_line_button, GPIO.FALLING, bouncetime=200, callback=s_line_button_callback)
 
@@ -273,7 +312,23 @@ try:
                     mode = 1 # mode -> ready_to_start
             
             elif mode == 10:     # end_combination mode
-                # test code. will be changed
+                if secure:
+                    if (check_combination(combocode, durations, directions, tolerance)):
+                        #play sound
+                        #write U/L high
+                        #wait 2 seconds
+                        #change lock state
+                    else:
+                        #play sound
+                else:
+                    if (check_unsecure(combocode, durations, tolerance)):
+                        #play sound
+                        #write U/L high
+                    else:
+                        #play sound
+                    
+
+                # test code. will be changed    
                 print_combination()
                 print(directions)
                 print(durations)
